@@ -1,0 +1,6 @@
+{
+  "gridSize": { "rows": 7, "cols": 7 },
+  "tileTypes": ["train", "ticket", "bench", "tree", "clock", "star", "moon"],
+  "moves": 20,
+  "scoreGoal": 500
+}

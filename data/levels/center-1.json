@@ -1,0 +1,6 @@
+{
+  "gridSize": { "rows": 7, "cols": 7 },
+  "tileTypes": ["bag", "cart", "shoe", "gift", "coffee", "gem", "flame"],
+  "moves": 20,
+  "scoreGoal": 500
+}
