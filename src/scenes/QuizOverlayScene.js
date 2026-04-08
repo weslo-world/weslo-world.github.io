@@ -1,6 +1,6 @@
 import { computeLayout } from '../utils/layout.js';
 
-const TIMER_SECONDS = 5;
+const TIMER_SECONDS = 10;
 
 export class QuizOverlayScene extends Phaser.Scene {
   constructor() {
