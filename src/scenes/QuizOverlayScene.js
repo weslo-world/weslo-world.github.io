@@ -110,11 +110,11 @@ export class QuizOverlayScene extends Phaser.Scene {
       this._emitConfetti();
 
       const L = computeLayout(this.scale.width, this.scale.height);
-      this.add.text(L.centerX, L.centerY + L.quizH / 2 - 55,
-        `Correct!  +${this.totalPoints} pts`, {
-          fontSize: this._fs(22, L), fontFamily: 'Arial',
-          color: '#7fff7f', fontStyle: 'bold',
-        }).setOrigin(0.5);
+      const resultMsg = this.isRescue ? 'Correct!  Blast!' : `Correct!  +${this.totalPoints} pts`;
+      this.add.text(L.centerX, L.centerY + L.quizH / 2 - 55, resultMsg, {
+        fontSize: this._fs(22, L), fontFamily: 'Arial',
+        color: '#7fff7f', fontStyle: 'bold',
+      }).setOrigin(0.5);
 
       this.time.delayedCall(1600, () => this._finish(true));
     } else {

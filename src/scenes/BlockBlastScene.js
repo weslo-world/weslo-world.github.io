@@ -360,13 +360,14 @@ export class BlockBlastScene extends Phaser.Scene {
       }
 
       if (correct) {
-        this.score += points;
-        this._updateHUD();
-        if (this.score >= 100) {
-          this.time.delayedCall(300, () => this._showWin());
-          return;
-        }
-        if (isRescue) {
+        if (!isRescue) {
+          this.score += points;
+          this._updateHUD();
+          if (this.score >= 100) {
+            this.time.delayedCall(300, () => this._showWin());
+            return;
+          }
+        } else {
           this._doBlast();
         }
       }
