@@ -76,16 +76,16 @@ Base points determined by the harder factor in the multiplication task:
 
 ### MathQuizEngine (`src/logic/mathquiz.js`)
 
-Encapsulated class. v1 is random selection from 1–10 multiplication tables. Designed for future replacement with spaced-repetition or educational-order algorithm without touching scene code.
+Queue-based adaptive selection. Factors are 2–9 only (no trivial ×1 or ×10).
 
 ```js
 class MathQuizEngine {
-  generateTask()              // → { a, b, answer, options[4], points }
-  recordResult(a, b, correct) // hook for v2 adaptive algorithm (no-op in v1)
+  generateTask()              // → { a, b, answer, points }
+  recordResult(a, b, correct) // wrong answer → re-inserts task 1–3 positions ahead in queue
 }
 ```
 
-Options array always contains exactly 4 plausible wrong answers + correct answer, shuffled.
+On a wrong answer the failed task is re-inserted 1–3 positions later in the queue so the player sees it again soon. Correct answers consume the task normally. Queue refills automatically with random tasks.
 
 ### Pieces (`src/logic/pieces.js`)
 

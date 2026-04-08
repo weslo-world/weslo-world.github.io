@@ -1,32 +1,58 @@
 /**
  * MathQuizEngine — generates multiplication quiz tasks.
  *
- * v1: random selection from 2–9 tables.
- * Designed for future replacement with spaced-repetition or educational-order
- * algorithm. Swap out generateTask() and recordResult() without touching scenes.
+ * Queue-based adaptive selection:
+ * - Tasks are pre-queued a few ahead.
+ * - On a wrong answer, the same task is re-inserted 1–3 positions later
+ *   so the player sees it again soon without it being the very next one.
+ * - Designed for future upgrade (e.g. weighted difficulty, spaced repetition)
+ *   without touching scene code.
  */
+
+const QUEUE_MIN = 5;  // refill when queue drops below this
+
 export class MathQuizEngine {
-  /**
-   * Returns a quiz task object:
-   * { a, b, answer, points }
-   *
-   * points is determined by difficulty.
-   */
-  generateTask() {
-    const a = Math.floor(Math.random() * 8) + 2;  // 2–9
-    const b = Math.floor(Math.random() * 8) + 2;  // 2–9
-    const answer = a * b;
-    const points = this._pointsFor(a, b);
-    return { a, b, answer, points };
+  constructor() {
+    this._queue = [];
+    this._fillQueue(QUEUE_MIN);
   }
 
   /**
-   * Hook for v2 adaptive algorithm. Records whether the player answered correctly.
-   * No-op in v1.
+   * Returns the next task: { a, b, answer, points }
    */
-  // eslint-disable-next-line no-unused-vars
+  generateTask() {
+    if (this._queue.length < QUEUE_MIN) this._fillQueue(QUEUE_MIN);
+    return this._queue.shift();
+  }
+
+  /**
+   * Call after each answer. On wrong, re-inserts the task 1–3 positions ahead.
+   */
   recordResult(a, b, correct) {
-    // v2: update spaced-repetition state here
+    if (!correct) {
+      const delay = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3
+      const retry = this._makeTask(a, b);
+      // Ensure queue is long enough to insert at the desired position
+      while (this._queue.length < delay) this._queue.push(this._randomTask());
+      this._queue.splice(delay, 0, retry);
+    }
+  }
+
+  // ─── Internals ────────────────────────────────────────────────────────────
+
+  _fillQueue(n) {
+    for (let i = 0; i < n; i++) this._queue.push(this._randomTask());
+  }
+
+  _randomTask() {
+    const a = Math.floor(Math.random() * 8) + 2;  // 2–9
+    const b = Math.floor(Math.random() * 8) + 2;  // 2–9
+    return this._makeTask(a, b);
+  }
+
+  _makeTask(a, b) {
+    if (Math.random() < 0.5) [a, b] = [b, a];
+    return { a, b, answer: a * b, points: this._pointsFor(a, b) };
   }
 
   _pointsFor(a, b) {
