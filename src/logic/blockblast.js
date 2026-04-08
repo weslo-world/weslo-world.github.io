@@ -92,37 +92,37 @@ export function canAnyPieceFit(grid, pieceList) {
 }
 
 /**
- * Blast clear: clears the densest row and the densest column (cross pattern).
+ * Blast clear: clears the 2 densest rows and 2 densest columns.
  * Returns { newGrid, clearedCells: [[r,c], ...] }
  */
 export function blastClear(grid) {
   const rows = grid.length;
   const cols = grid[0].length;
 
-  // Find densest row
-  let bestRow = 0;
-  let bestRowCount = 0;
-  for (let r = 0; r < rows; r++) {
-    const count = grid[r].filter(Boolean).length;
-    if (count > bestRowCount) { bestRowCount = count; bestRow = r; }
-  }
+  // Rank rows by fill count, pick top 2
+  const rowCounts = Array.from({ length: rows }, (_, r) => ({
+    r, count: grid[r].filter(Boolean).length,
+  })).sort((a, b) => b.count - a.count);
+  const blastRows = new Set(rowCounts.slice(0, 2).map(x => x.r));
 
-  // Find densest column
-  let bestCol = 0;
-  let bestColCount = 0;
-  for (let c = 0; c < cols; c++) {
-    const count = grid.filter(row => row[c]).length;
-    if (count > bestColCount) { bestColCount = count; bestCol = c; }
-  }
+  // Rank columns by fill count, pick top 2
+  const colCounts = Array.from({ length: cols }, (_, c) => ({
+    c, count: grid.filter(row => row[c]).length,
+  })).sort((a, b) => b.count - a.count);
+  const blastCols = new Set(colCounts.slice(0, 2).map(x => x.c));
 
   const clearedCells = [];
   const next = grid.map(r => [...r]);
 
-  for (let c = 0; c < cols; c++) {
-    if (next[bestRow][c]) { next[bestRow][c] = false; clearedCells.push([bestRow, c]); }
+  for (const r of blastRows) {
+    for (let c = 0; c < cols; c++) {
+      if (next[r][c]) { next[r][c] = false; clearedCells.push([r, c]); }
+    }
   }
-  for (let r = 0; r < rows; r++) {
-    if (next[r][bestCol]) { next[r][bestCol] = false; clearedCells.push([r, bestCol]); }
+  for (const c of blastCols) {
+    for (let r = 0; r < rows; r++) {
+      if (next[r][c]) { next[r][c] = false; clearedCells.push([r, c]); }
+    }
   }
 
   return { newGrid: next, clearedCells };
