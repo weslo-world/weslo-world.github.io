@@ -30,7 +30,8 @@ export class MathQuizEngine {
    */
   recordResult(a, b, correct) {
     if (!correct) {
-      const delay = Math.floor(Math.random() * 3) + 1; // 1, 2, or 3
+      const r = Math.random();
+      const delay = r < 0.5 ? 1 : r < 0.8 ? 2 : 3; // 50% / 30% / 20%
       const retry = this._makeTask(a, b);
       // Ensure queue is long enough to insert at the desired position
       while (this._queue.length < delay) this._queue.push(this._randomTask());
