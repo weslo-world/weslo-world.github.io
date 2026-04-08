@@ -143,76 +143,79 @@ export class BlockBlastScene extends Phaser.Scene {
         container.add(rect);
       });
 
-      // Invisible hit area for drag start
-      const hitRect = this.add.rectangle(slotCenterX, slotCenterY, traySlotW, trayH, 0xffffff, 0)
-        .setInteractive({ useHandCursor: true, draggable: true });
-      container.add(hitRect);
-
       tp.container = container;
-      tp.hitRect = hitRect;
       tp.originX = originX;
       tp.originY = originY;
       tp.color = color;
+      // Store hit bounds for pointer detection
+      tp.hitBounds = {
+        x: originX, y: originY,
+        w: pieceW + trayCellSize, h: pieceH + trayCellSize,
+      };
     });
   }
 
-  // ─── Drag & Drop ──────────────────────────────────────────────────────────
+  // ─── Drag & Drop (raw pointer events — reliable on all platforms) ──────────
 
   _setupDrag() {
-    this.input.on('dragstart', (pointer, gameObject) => {
-      const tp = this._trayPieces.find(t => t.hitRect === gameObject);
-      if (!tp || tp.placed) return;
-      this._startDrag(tp, pointer);
+    this.input.on('pointerdown', (pointer) => {
+      if (this._quizPending) return;
+      const tp = this._trayPieces.find(t =>
+        !t.placed && t.hitBounds &&
+        pointer.x >= t.hitBounds.x - t.hitBounds.w / 4 &&
+        pointer.x <= t.hitBounds.x + t.hitBounds.w * 1.25 &&
+        pointer.y >= t.hitBounds.y - t.hitBounds.h / 4 &&
+        pointer.y <= t.hitBounds.y + t.hitBounds.h * 1.25
+      );
+      if (tp) this._startDrag(tp, pointer);
     });
 
-    this.input.on('drag', (pointer) => {
-      if (!this._dragging) return;
+    this.input.on('pointermove', (pointer) => {
+      if (!this._dragging || !pointer.isDown) return;
       this._updateDrag(pointer);
     });
 
-    this.input.on('dragend', (pointer) => {
+    this.input.on('pointerup', (pointer) => {
       if (!this._dragging) return;
       this._endDrag();
     });
   }
 
   _startDrag(tp, pointer) {
-    const { trayCellSize } = this.L;
-    const bounds = getPieceBounds(tp.piece.cells);
-
-    // Build a drag graphic at pointer position
     const g = this.add.graphics();
     this._dragging = { tp, graphics: g };
-    tp.container.setAlpha(0.3); // dim the tray copy
-    this._drawDragPiece(g, pointer.x, pointer.y, tp.piece.cells, trayCellSize, tp.color, 0.85);
-    this._updateGhost(pointer.x, pointer.y, tp.piece.cells);
+    tp.container.setAlpha(0.3);
+    this._updateDrag(pointer);
   }
 
   _updateDrag(pointer) {
     const { tp, graphics } = this._dragging;
-    const { trayCellSize } = this.L;
+    const { cellSize } = this.L;
     graphics.clear();
-    this._drawDragPiece(graphics, pointer.x, pointer.y, tp.piece.cells, trayCellSize, tp.color, 0.85);
+    // Draw at grid cell size so it matches where it will land
+    this._drawDragPiece(graphics, pointer.x, pointer.y, tp.piece.cells, cellSize, tp.color, 0.85);
     this._updateGhost(pointer.x, pointer.y, tp.piece.cells);
   }
 
   _endDrag() {
     const { tp, graphics } = this._dragging;
+    // Capture ghostPos BEFORE clearing
+    const ghostPos = this._ghostPos;
+
     graphics.destroy();
     this._clearGhost();
+    this._dragging = null;
 
-    if (this._ghostPos) {
-      const { row, col } = this._ghostPos;
+    if (ghostPos) {
+      const { row, col } = ghostPos;
       if (canPlacePiece(this.grid, tp.piece.cells, row, col)) {
         this._placePiece(tp, row, col);
-        this._dragging = null;
         return;
       }
     }
 
-    // Invalid — bounce back
+    // Invalid drop — restore tray piece
     tp.container.setAlpha(1);
-    this._dragging = null;
   }
 
   _drawDragPiece(g, cx, cy, cells, size, color, alpha) {
