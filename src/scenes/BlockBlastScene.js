@@ -84,7 +84,7 @@ export class BlockBlastScene extends Phaser.Scene {
         const y = gridY + r * cellSize + cellSize / 2;
         const rect = this.add.rectangle(x, y, cellSize - 2, cellSize - 2, EMPTY_COLOR)
           .setStrokeStyle(1, EMPTY_STROKE)
-          .setAlpha(0.2);
+          .setAlpha(0.4);
         this._cellRects[r][c] = rect;
       }
     }
@@ -98,7 +98,7 @@ export class BlockBlastScene extends Phaser.Scene {
         if (this.grid[r][c]) {
           rect.setFillStyle(CELL_COLOR).setStrokeStyle(1, CELL_STROKE).setAlpha(1);
         } else {
-          rect.setFillStyle(EMPTY_COLOR).setStrokeStyle(1, EMPTY_STROKE).setAlpha(0.2);
+          rect.setFillStyle(EMPTY_COLOR).setStrokeStyle(1, EMPTY_STROKE).setAlpha(0.4);
         }
       }
     }
