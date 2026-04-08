@@ -32,7 +32,9 @@ export class MapScene extends Phaser.Scene {
 
   _buildMap(locations, L) {
     // Map background — scale to fill
-    this.add.image(L.centerX, L.centerY, 'map').setDisplaySize(L.W, L.H);
+    const mapImg = this.add.image(L.centerX, L.centerY, 'map');
+    const scale = Math.max(L.W / mapImg.width, L.H / mapImg.height);
+    mapImg.setScale(scale);
 
     // Title
     this.add.text(L.centerX, 30, 'Select a Location', {

@@ -33,11 +33,17 @@ export class MathQuizEngine {
 
   _pointsFor(a, b) {
     const max = Math.max(a, b);
-    if (max === 1) return 1;
-    if (max <= 3) return 2;
-    if (max <= 5) return 4;
-    if (max <= 7) return 6;
-    return 8;
+    // Collect all applicable point values and return the minimum
+    // 1×N, N×1, 10×N, N×10 → trivial (2pt)
+    // 2×N, N×2 → easy (4pt)
+    // 5×N, N×5 → medium (6pt)
+    // other → hard (8pt)
+    const pts = [];
+    if (a === 1 || b === 1 || a === 10 || b === 10) pts.push(2);
+    if (a === 2 || b === 2) pts.push(4);
+    if (a === 5 || b === 5) pts.push(6);
+    if (pts.length === 0) pts.push(8);
+    return Math.min(...pts);
   }
 
   _buildOptions(answer, a, b) {

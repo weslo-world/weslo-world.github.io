@@ -10,7 +10,7 @@ import { MathQuizEngine } from '../logic/mathquiz.js';
 const CELL_COLOR = 0x5577ee;
 const CELL_STROKE = 0x8899ff;
 const EMPTY_COLOR = 0x111133;
-const EMPTY_STROKE = 0x222255;
+const EMPTY_STROKE = 0xffffff;
 const GHOST_VALID = 0x44ee88;
 const GHOST_INVALID = 0xee4444;
 const TRAY_COLORS = [0x5577ee, 0xee7755, 0x55bb77];
@@ -64,7 +64,9 @@ export class BlockBlastScene extends Phaser.Scene {
     const { W, H } = this.L;
     const key = this.locationData.id;
     if (this.textures.exists(key)) {
-      this.add.image(W / 2, H / 2, key).setDisplaySize(W, H);
+      const bg = this.add.image(W / 2, H / 2, key);
+      const scale = Math.max(W / bg.width, H / bg.height);
+      bg.setScale(scale);
     } else {
       this.add.rectangle(W / 2, H / 2, W, H, 0x1a1a2e);
     }
