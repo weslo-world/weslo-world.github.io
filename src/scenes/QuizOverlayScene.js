@@ -1,5 +1,3 @@
-import { computeLayout } from '../utils/layout.js';
-
 const TIMER_SECONDS = 10;
 
 export class QuizOverlayScene extends Phaser.Scene {
@@ -8,80 +6,77 @@ export class QuizOverlayScene extends Phaser.Scene {
   }
 
   init(data) {
-    this.task = data.task;           // { a, b, answer, options, points }
+    this.task = data.task;
     this.linesCleared = data.linesCleared || 1;
     this.isRescue = data.isRescue || false;
     this.totalPoints = this.task.points * this.linesCleared;
+    this._typed = '';
+    this._answerDigits = String(this.task.answer).length;
     this._answered = false;
+    this._elapsed = 0;
   }
 
   create() {
-    const L = computeLayout(this.scale.width, this.scale.height);
+    const W = this.scale.width;
+    const H = this.scale.height;
+
+    const cardW = Math.min(W - 24, 400);
+    const cardH = Math.min(H * 0.84, 560);
+    const cx = Math.floor(W / 2);
+    const cy = Math.floor(H / 2);
 
     // Dim overlay
-    this.add.rectangle(L.centerX, L.centerY, L.W, L.H, 0x000000, 0.65);
+    this.add.rectangle(cx, cy, W, H, 0x000000, 0.72);
 
-    // Card background
-    const card = this.add.rectangle(L.centerX, L.centerY, L.quizW, L.quizH, 0x1e1e3a, 1)
+    // Card
+    this.add.rectangle(cx, cy, cardW, cardH, 0x1a1a3a)
       .setStrokeStyle(3, 0x5566ff);
 
-    // Points label
-    const labelText = this.isRescue
-      ? 'Rescue Blast!'
-      : `+${this.totalPoints} pts`;
-    this.add.text(L.centerX, L.centerY - L.quizH / 2 + 22, labelText, {
-      fontSize: this._fs(20, L), fontFamily: 'Arial', color: '#ffd700', fontStyle: 'bold',
+    // Points / rescue label
+    const labelText = this.isRescue ? 'Rescue Blast!' : `+${this.totalPoints} pts`;
+    this.add.text(cx, cy - cardH / 2 + 24, labelText, {
+      fontSize: this._fs(18, cardW), fontFamily: 'Arial',
+      color: '#ffd700', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    // Problem text
-    this.problemText = this.add.text(
-      L.centerX,
-      L.centerY - L.quizH / 2 + 70,
-      `${this.task.a}  ×  ${this.task.b}  =  ?`,
-      { fontSize: this._fs(40, L), fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold' }
-    ).setOrigin(0.5);
+    // Problem: "7  ×  8  ="
+    this.add.text(cx, cy - cardH / 2 + 68, `${this.task.a}  ×  ${this.task.b}  =`, {
+      fontSize: this._fs(38, cardW), fontFamily: 'Arial',
+      color: '#ffffff', fontStyle: 'bold',
+    }).setOrigin(0.5);
 
-    // Answer buttons (2×2 grid)
-    const btnW = Math.floor(L.quizW * 0.42);
-    const btnH = Math.floor(L.quizH * 0.14);
-    const btnGap = Math.floor(L.quizW * 0.05);
-    const gridTop = L.centerY - 10;
-    const positions = [
-      [L.centerX - btnW / 2 - btnGap / 2, gridTop - btnH / 2 - btnGap / 2],
-      [L.centerX + btnW / 2 + btnGap / 2, gridTop - btnH / 2 - btnGap / 2],
-      [L.centerX - btnW / 2 - btnGap / 2, gridTop + btnH / 2 + btnGap / 2],
-      [L.centerX + btnW / 2 + btnGap / 2, gridTop + btnH / 2 + btnGap / 2],
-    ];
+    // Answer display boxes
+    const boxSize = Math.floor(cardW * 0.18);
+    const boxGap = Math.floor(cardW * 0.04);
+    const totalBoxW = this._answerDigits * boxSize + (this._answerDigits - 1) * boxGap;
+    const boxY = cy - cardH / 2 + 128;
 
-    this.buttons = [];
-    this.task.options.forEach((value, i) => {
-      const [bx, by] = positions[i];
-      const bg = this.add.rectangle(bx, by, btnW, btnH, 0x3344aa, 1)
-        .setStrokeStyle(2, 0x8899ff)
-        .setInteractive({ useHandCursor: true });
-      const label = this.add.text(bx, by, String(value), {
-        fontSize: this._fs(28, L), fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold',
+    this._digitBoxes = [];
+    for (let i = 0; i < this._answerDigits; i++) {
+      const bx = cx - totalBoxW / 2 + i * (boxSize + boxGap) + boxSize / 2;
+      const bg = this.add.rectangle(bx, boxY, boxSize, boxSize, 0x2a2a5a)
+        .setStrokeStyle(2, 0x8899ff);
+      const txt = this.add.text(bx, boxY, '', {
+        fontSize: this._fs(34, cardW), fontFamily: 'Arial',
+        color: '#ffffff', fontStyle: 'bold',
       }).setOrigin(0.5);
-      bg.on('pointerover', () => bg.setFillStyle(0x5566cc));
-      bg.on('pointerout', () => { if (!this._answered) bg.setFillStyle(0x3344aa); });
-      bg.on('pointerup', () => this._onAnswer(value, bg, label));
-      this.buttons.push({ bg, label, value });
-    });
+      this._digitBoxes.push({ bg, txt });
+    }
+
+    // Numpad
+    this._buildNumpad(cx, cy, cardW, cardH);
 
     // Timer bar
-    const barY = L.centerY + L.quizH / 2 - 28;
-    const barW = L.quizW - 40;
-    this.add.rectangle(L.centerX, barY, barW, 14, 0x333366, 1)
-      .setStrokeStyle(1, 0x555599);
-    this.timerBarFill = this.add.rectangle(
-      L.centerX - barW / 2, barY, barW, 14, 0x44aaff, 1
-    ).setOrigin(0, 0.5);
+    const barY = cy + cardH / 2 - 22;
+    const barW = cardW - 40;
+    this.add.rectangle(cx, barY, barW, 10, 0x222244);
+    this.timerBarFill = this.add.rectangle(cx - barW / 2, barY, barW, 10, 0x44aaff)
+      .setOrigin(0, 0.5);
     this._timerBarW = barW;
-    this._timerBarX = L.centerX - barW / 2;
-    this._elapsed = 0;
+    this._timerBarX = cx - barW / 2;
 
-    // Confetti particles (created but emitting only on correct)
-    this._createConfettiEmitter(L);
+    // Confetti emitter (fires on correct)
+    this._createConfettiEmitter(W);
   }
 
   update(time, delta) {
@@ -89,53 +84,129 @@ export class QuizOverlayScene extends Phaser.Scene {
     this._elapsed += delta;
     const fraction = Math.max(0, 1 - this._elapsed / (TIMER_SECONDS * 1000));
     this.timerBarFill.width = this._timerBarW * fraction;
-    this.timerBarFill.x = this._timerBarX;
-
-    // Color shifts red as time runs out
     if (fraction < 0.3) this.timerBarFill.setFillStyle(0xff4444);
     else if (fraction < 0.6) this.timerBarFill.setFillStyle(0xffaa00);
-
-    if (fraction <= 0) this._onAnswer(null, null, null); // timeout = wrong
+    if (fraction <= 0) this._evaluate();
   }
 
-  _onAnswer(value, bg, label) {
+  // ─── Numpad ───────────────────────────────────────────────────────────────
+
+  _buildNumpad(cx, cy, cardW, cardH) {
+    const keys = [
+      [1, 2, 3],
+      [4, 5, 6],
+      [7, 8, 9],
+      ['AC', 0, '⌫'],
+    ];
+
+    const numpadTop = cy - cardH / 2 + 178;
+    const btnW = Math.floor(cardW * 0.27);
+    const btnH = Math.floor(cardH * 0.105);
+    const colGap = Math.floor((cardW - btnW * 3) / 4);
+    const rowGap = Math.floor(cardH * 0.015);
+
+    keys.forEach((row, ri) => {
+      row.forEach((key, ci) => {
+        if (key === null) return;
+        const bx = cx - cardW / 2 + colGap + ci * (btnW + colGap) + btnW / 2;
+        const by = numpadTop + ri * (btnH + rowGap) + btnH / 2;
+
+        const isSpecial = key === '⌫' || key === 'AC';
+        const bg = this.add.rectangle(bx, by, btnW, btnH, isSpecial ? 0x442222 : 0x2a3a6a)
+          .setStrokeStyle(2, isSpecial ? 0xaa4444 : 0x5566bb)
+          .setInteractive({ useHandCursor: true });
+
+        const label = this.add.text(bx, by, String(key), {
+          fontSize: this._fs(isSpecial ? 20 : 28, cardW),
+          fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold',
+        }).setOrigin(0.5);
+
+        bg.on('pointerover', () => bg.setFillStyle(isSpecial ? 0x663333 : 0x3a4e8a));
+        bg.on('pointerout', () => bg.setFillStyle(isSpecial ? 0x442222 : 0x2a3a6a));
+        bg.on('pointerdown', () => bg.setFillStyle(isSpecial ? 0x882222 : 0x5566cc));
+        bg.on('pointerup', () => {
+          bg.setFillStyle(isSpecial ? 0x442222 : 0x2a3a6a);
+          if (key === '⌫') this._onBackspace();
+          else if (key === 'AC') this._onClear();
+          else this._onDigit(key);
+        });
+      });
+    });
+  }
+
+  // ─── Input ────────────────────────────────────────────────────────────────
+
+  _onDigit(d) {
+    if (this._answered || this._typed.length >= this._answerDigits) return;
+    this._typed += String(d);
+    this._updateDisplay();
+    if (this._typed.length === this._answerDigits) {
+      this.time.delayedCall(120, () => this._evaluate());
+    }
+  }
+
+  _onBackspace() {
+    if (this._answered) return;
+    this._typed = this._typed.slice(0, -1);
+    this._updateDisplay();
+  }
+
+  _onClear() {
+    if (this._answered) return;
+    this._typed = '';
+    this._updateDisplay();
+  }
+
+  _updateDisplay(overrideDigits, color) {
+    const digits = overrideDigits || this._typed;
+    this._digitBoxes.forEach((box, i) => {
+      const ch = digits[i] || '';
+      box.txt.setText(ch);
+      box.txt.setColor(color || '#ffffff');
+      box.bg.setStrokeStyle(2, ch ? 0xffffff : 0x8899ff);
+    });
+  }
+
+  // ─── Evaluate ─────────────────────────────────────────────────────────────
+
+  _evaluate() {
     if (this._answered) return;
     this._answered = true;
 
-    const correct = value === this.task.answer;
+    const typed = parseInt(this._typed || '0', 10);
+    const correct = typed === this.task.answer;
 
     if (correct) {
-      bg.setFillStyle(0x22aa44);
+      this._updateDisplay(String(this.task.answer), '#7fff7f');
+      this._digitBoxes.forEach(b => b.bg.setFillStyle(0x1a4a2a).setStrokeStyle(2, 0x44ee66));
       this.timerBarFill.setFillStyle(0x22aa44);
       this._emitConfetti();
 
-      const L = computeLayout(this.scale.width, this.scale.height);
+      const W = this.scale.width;
+      const H = this.scale.height;
       const resultMsg = this.isRescue ? 'Correct!  Blast!' : `Correct!  +${this.totalPoints} pts`;
-      this.add.text(L.centerX, L.centerY + L.quizH / 2 - 55, resultMsg, {
-        fontSize: this._fs(22, L), fontFamily: 'Arial',
-        color: '#7fff7f', fontStyle: 'bold',
+      this.add.text(W / 2, H / 2 + 30, resultMsg, {
+        fontSize: this._fs(22, Math.min(W - 24, 400)),
+        fontFamily: 'Arial', color: '#7fff7f', fontStyle: 'bold',
       }).setOrigin(0.5);
 
       this.time.delayedCall(1600, () => this._finish(true));
     } else {
-      // Shake the card
       this.cameras.main.shake(400, 0.015);
-      if (bg) bg.setFillStyle(0xaa2222);
+      this._updateDisplay(this._typed, '#ff8888');
+      this._digitBoxes.forEach(b => b.bg.setFillStyle(0x4a1a1a).setStrokeStyle(2, 0xee4444));
 
-      // Show correct answer
-      const L = computeLayout(this.scale.width, this.scale.height);
-      const correctBtn = this.buttons.find(b => b.value === this.task.answer);
-      if (correctBtn) correctBtn.bg.setFillStyle(0x22aa44);
+      // Show correct answer after shake
+      this.time.delayedCall(500, () => {
+        this._updateDisplay(String(this.task.answer), '#7fff7f');
+        this._digitBoxes.forEach(b => b.bg.setFillStyle(0x1a4a2a).setStrokeStyle(2, 0x44ee66));
+      });
 
-      this.add.text(L.centerX, L.centerY + L.quizH / 2 - 55,
-        `Answer: ${this.task.answer}`, {
-          fontSize: this._fs(22, L), fontFamily: 'Arial',
-          color: '#ff8888', fontStyle: 'bold',
-        }).setOrigin(0.5);
-
-      // Tap anywhere or wait 5s to dismiss
-      this.time.delayedCall(5000, () => this._finish(false));
-      this.input.once('pointerup', () => this._finish(false));
+      // Dismiss after 10s or tap
+      this.time.delayedCall(10000, () => this._finish(false));
+      this.time.delayedCall(500, () => {
+        this.input.once('pointerdown', () => this._finish(false));
+      });
     }
   }
 
@@ -144,8 +215,9 @@ export class QuizOverlayScene extends Phaser.Scene {
     this.scene.stop();
   }
 
-  _createConfettiEmitter(L) {
-    // Generate a small white texture for particles
+  // ─── Confetti ─────────────────────────────────────────────────────────────
+
+  _createConfettiEmitter(W) {
     const g = this.make.graphics({ x: 0, y: 0, add: false });
     g.fillStyle(0xffffff);
     g.fillRect(0, 0, 10, 6);
@@ -155,8 +227,8 @@ export class QuizOverlayScene extends Phaser.Scene {
     const colors = [0xff6b6b, 0xffd93d, 0x6bcb77, 0x4d96ff, 0xff922b, 0xcc5de8];
     this._confettiEmitters = colors.map(tint =>
       this.add.particles(0, 0, 'confetti_particle', {
-        x: { min: 0, max: L.W },
-        y: { start: -20, end: L.H + 20 },
+        x: { min: 0, max: W },
+        y: { start: -20, end: this.scale.height + 20 },
         speedY: { min: 300, max: 600 },
         speedX: { min: -80, max: 80 },
         rotate: { start: 0, end: 360 },
@@ -175,8 +247,7 @@ export class QuizOverlayScene extends Phaser.Scene {
     }
   }
 
-  _fs(base, L) {
-    // Scale font relative to quiz card width
-    return `${Math.floor(base * (L.quizW / 360))}px`;
+  _fs(base, cardW) {
+    return `${Math.floor(base * (cardW / 360))}px`;
   }
 }

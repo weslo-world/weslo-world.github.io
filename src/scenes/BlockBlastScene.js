@@ -22,15 +22,26 @@ export class BlockBlastScene extends Phaser.Scene {
 
   init(data) {
     this.locationData = data.location;
-    this.score = 0;
-    this.grid = createGrid(8, 8);
     this.quizEngine = new MathQuizEngine();
-    this._dragging = null;       // { pieceIndex, graphics, offsetX, offsetY }
-    this._ghostCells = [];       // current ghost rect objects
-    this._ghostPos = null;       // { row, col } or null
+    this._dragging = null;
+    this._ghostCells = [];
+    this._ghostPos = null;
     this._quizPending = false;
-    this._trayPieces = [];       // [{ piece, container, placed }]
-    this._cellRects = [];        // 2D array of Phaser rectangles for the grid
+    this._trayPieces = [];
+    this._cellRects = [];
+
+    // Restore state saved before a resize restart, otherwise start fresh
+    const saved = this.game.registry.get('blockBlastState');
+    if (saved) {
+      this.game.registry.remove('blockBlastState');
+      this.score = saved.score;
+      this.grid = saved.grid;
+      this._restoredTray = saved.tray;
+    } else {
+      this.score = 0;
+      this.grid = createGrid(8, 8);
+      this._restoredTray = null;
+    }
   }
 
   preload() {
@@ -42,6 +53,7 @@ export class BlockBlastScene extends Phaser.Scene {
 
     this._drawBackground();
     this._buildGrid();
+    this._refreshGrid();  // renders saved grid state (or empty grid on fresh start)
     this._dealPieces();
     this._setupDrag();
 
@@ -52,10 +64,8 @@ export class BlockBlastScene extends Phaser.Scene {
       goal: 100,
     });
 
-    this.scale.on('resize', () => {
-      this.L = computeLayout(this.scale.width, this.scale.height);
-      this.scene.restart({ location: this.locationData });
-    });
+    // No resize restart — canvas fills screen automatically via Phaser.Scale.RESIZE.
+    // Layout may shift on orientation change but game state is always intact.
   }
 
   // ─── Background ───────────────────────────────────────────────────────────
@@ -109,16 +119,20 @@ export class BlockBlastScene extends Phaser.Scene {
   // ─── Tray ──────────────────────────────────────────────────────────────────
 
   _dealPieces() {
-    // Clean up previous containers
     this._trayPieces.forEach(tp => tp.container && tp.container.destroy());
     this._trayPieces = [];
 
-    const pieces = getRandomPieceSet();
-    pieces.forEach((piece, i) => {
-      this._trayPieces.push({ piece, placed: false, slotIndex: i });
-    });
+    if (this._restoredTray) {
+      this._trayPieces = this._restoredTray.map(t => ({ piece: t.piece, placed: t.placed, slotIndex: t.slotIndex }));
+      this._restoredTray = null;
+    } else {
+      getRandomPieceSet().forEach((piece, i) => {
+        this._trayPieces.push({ piece, placed: false, slotIndex: i });
+      });
+    }
     this._renderTray();
   }
+
 
   _renderTray() {
     this._trayPieces.forEach((tp, i) => {

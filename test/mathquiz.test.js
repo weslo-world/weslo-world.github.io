@@ -4,13 +4,13 @@ import { MathQuizEngine } from '../src/logic/mathquiz.js';
 describe('MathQuizEngine', () => {
   const engine = new MathQuizEngine();
 
-  it('generates a task with valid factors 1–10', () => {
-    for (let i = 0; i < 20; i++) {
+  it('generates factors in range 2–9', () => {
+    for (let i = 0; i < 30; i++) {
       const { a, b } = engine.generateTask();
-      expect(a).toBeGreaterThanOrEqual(1);
-      expect(a).toBeLessThanOrEqual(10);
-      expect(b).toBeGreaterThanOrEqual(1);
-      expect(b).toBeLessThanOrEqual(10);
+      expect(a).toBeGreaterThanOrEqual(2);
+      expect(a).toBeLessThanOrEqual(9);
+      expect(b).toBeGreaterThanOrEqual(2);
+      expect(b).toBeLessThanOrEqual(9);
     }
   });
 
@@ -21,32 +21,31 @@ describe('MathQuizEngine', () => {
     }
   });
 
-  it('options contains exactly 4 numbers', () => {
-    const { options } = engine.generateTask();
-    expect(options).toHaveLength(4);
+  it('points are 4 when either factor is 2', () => {
+    expect(engine._pointsFor(2, 7)).toBe(4);
+    expect(engine._pointsFor(7, 2)).toBe(4);
   });
 
-  it('options contains the correct answer', () => {
+  it('points are 6 when either factor is 5 (and not 2)', () => {
+    expect(engine._pointsFor(5, 7)).toBe(6);
+    expect(engine._pointsFor(7, 5)).toBe(6);
+  });
+
+  it('points are 4 when factors are 2 and 5 (minimum wins)', () => {
+    expect(engine._pointsFor(2, 5)).toBe(4);
+  });
+
+  it('points are 8 for other factors', () => {
+    expect(engine._pointsFor(3, 7)).toBe(8);
+    expect(engine._pointsFor(4, 6)).toBe(8);
+    expect(engine._pointsFor(9, 9)).toBe(8);
+  });
+
+  it('points are in valid range', () => {
     for (let i = 0; i < 20; i++) {
-      const { answer, options } = engine.generateTask();
-      expect(options).toContain(answer);
+      const { points } = engine.generateTask();
+      expect([4, 6, 8]).toContain(points);
     }
-  });
-
-  it('options has no duplicates', () => {
-    for (let i = 0; i < 20; i++) {
-      const { options } = engine.generateTask();
-      expect(new Set(options).size).toBe(4);
-    }
-  });
-
-  it('points scale with difficulty', () => {
-    // factor 1 → 1 pt
-    const t1 = engine.generateTask();
-    // We can't force factors, but we can test the range
-    const { points } = engine.generateTask();
-    expect(points).toBeGreaterThanOrEqual(1);
-    expect(points).toBeLessThanOrEqual(8);
   });
 
   it('recordResult does not throw', () => {
