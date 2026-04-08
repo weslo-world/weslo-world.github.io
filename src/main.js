@@ -1,17 +1,18 @@
 import { MapScene } from './scenes/MapScene.js';
-import { PuzzleScene } from './scenes/PuzzleScene.js';
+import { BlockBlastScene } from './scenes/BlockBlastScene.js';
 import { UIScene } from './scenes/UIScene.js';
+import { QuizOverlayScene } from './scenes/QuizOverlayScene.js';
 
 const config = {
   type: Phaser.AUTO,
-  width: 800,
-  height: 600,
   backgroundColor: '#1a1a2e',
   scale: {
-    mode: Phaser.Scale.FIT,
+    mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: window.innerWidth,
+    height: window.innerHeight,
   },
-  scene: [MapScene, PuzzleScene, UIScene],
+  scene: [MapScene, BlockBlastScene, UIScene, QuizOverlayScene],
 };
 
 new Phaser.Game(config);
