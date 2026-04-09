@@ -4,15 +4,15 @@
       "id": "station",
       "name": "Holmlia Stasjon",
       "image": "assets/scene1.png",
-      "mapHotspot": { "x": 280, "y": 420, "width": 200, "height": 80 },
-      "levels": ["station-1"]
+      "quiz": "multiplication",
+      "mapHotspot": { "x": 280, "y": 420, "width": 200, "height": 80 }
     },
     {
       "id": "center",
       "name": "Holmlia Senter",
       "image": "assets/scene2.png",
-      "mapHotspot": { "x": 400, "y": 180, "width": 200, "height": 80 },
-      "levels": ["center-1"]
+      "quiz": "addition",
+      "mapHotspot": { "x": 400, "y": 180, "width": 200, "height": 80 }
     }
   ]
 }

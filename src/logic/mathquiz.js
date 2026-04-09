@@ -28,12 +28,11 @@ export class MathQuizEngine {
   /**
    * Call after each answer. On wrong, re-inserts the task 1–3 positions ahead.
    */
-  recordResult(a, b, correct) {
+  recordResult(task, correct) {
     if (!correct) {
       const r = Math.random();
       const delay = r < 0.5 ? 1 : r < 0.8 ? 2 : 3; // 50% / 30% / 20%
-      const retry = this._makeTask(a, b);
-      // Ensure queue is long enough to insert at the desired position
+      const retry = this._makeTask(task.a, task.b);
       while (this._queue.length < delay) this._queue.push(this._randomTask());
       this._queue.splice(delay, 0, retry);
     }
@@ -53,7 +52,7 @@ export class MathQuizEngine {
 
   _makeTask(a, b) {
     if (Math.random() < 0.5) [a, b] = [b, a];
-    return { a, b, answer: a * b, points: this._pointsFor(a, b) };
+    return { a, b, label: `${a}  ×  ${b}  =`, answer: a * b, points: this._pointsFor(a, b) };
   }
 
   _pointsFor(a, b) {

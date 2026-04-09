@@ -1,4 +1,5 @@
 import { computeLayout } from '../utils/layout.js';
+import { hasCompleted } from '../logic/progress.js';
 
 export class MapScene extends Phaser.Scene {
   constructor() {
@@ -64,6 +65,12 @@ export class MapScene extends Phaser.Scene {
         backgroundColor: 'rgba(0,0,0,0.6)',
         padding: { x: 10, y: 5 },
       }).setOrigin(0.5);
+
+      if (hasCompleted(loc.id)) {
+        this.add.text(sx + sw / 2 - 4, sy - sh / 2 + 4, '✓', {
+          fontSize: '18px', fontFamily: 'Arial', color: '#44ee66', fontStyle: 'bold',
+        }).setOrigin(1, 0);
+      }
 
       zone.on('pointerover', () => label.setStyle({ color: '#ffd700' }));
       zone.on('pointerout', () => label.setStyle({ color: '#ffffff' }));

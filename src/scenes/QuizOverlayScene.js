@@ -39,8 +39,8 @@ export class QuizOverlayScene extends Phaser.Scene {
       color: '#ffd700', fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    // Problem: "7  ×  8  ="
-    this.add.text(cx, cy - cardH / 2 + 68, `${this.task.a}  ×  ${this.task.b}  =`, {
+    // Problem label e.g. "7  ×  8  =" or "12  +  5  ="
+    this.add.text(cx, cy - cardH / 2 + 68, this.task.label, {
       fontSize: this._fs(38, cardW), fontFamily: 'Arial',
       color: '#ffffff', fontStyle: 'bold',
     }).setOrigin(0.5);

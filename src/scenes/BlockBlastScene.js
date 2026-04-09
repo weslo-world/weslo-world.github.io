@@ -4,7 +4,8 @@ import {
   createGrid, canPlacePiece, placePiece,
   findCompletedLines, removeLines, canAnyPieceFit, blastClear,
 } from '../logic/blockblast.js';
-import { MathQuizEngine } from '../logic/mathquiz.js';
+import { createQuizEngine } from '../logic/quizFactory.js';
+import { recordWin } from '../logic/progress.js';
 
 // Tile fill color for placed blocks
 const CELL_COLOR = 0x5577ee;
@@ -22,7 +23,7 @@ export class BlockBlastScene extends Phaser.Scene {
 
   init(data) {
     this.locationData = data.location;
-    this.quizEngine = new MathQuizEngine();
+    this.quizEngine = createQuizEngine(data.location?.quiz);
     this._dragging = null;
     this._ghostCells = [];
     this._ghostPos = null;
@@ -373,7 +374,7 @@ export class BlockBlastScene extends Phaser.Scene {
 
     const quizScene = this.scene.get('QuizOverlay');
     quizScene.events.once('quizComplete', ({ correct, points }) => {
-      this.quizEngine.recordResult(task.a, task.b, correct);
+      this.quizEngine.recordResult(task, correct);
       this._quizPending = false;
       this.scene.resume();
 
@@ -463,6 +464,7 @@ export class BlockBlastScene extends Phaser.Scene {
   // ─── Win screen ───────────────────────────────────────────────────────────
 
   _showWin() {
+    recordWin(this.locationData.id);
     this.scene.stop('UIScene');
 
     const { W, H, centerX, centerY } = this.L;
