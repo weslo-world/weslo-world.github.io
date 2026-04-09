@@ -24,7 +24,7 @@ export function computeLayout(W, H) {
 
   if (landscape) {
     const topPad    = Math.floor(H * 0.05);
-    const bottomPad = Math.floor(H * 0.10); // 5% base + 5% extra
+    const bottomPad = Math.floor(H * 0.15); // 5% base + 10% extra
     const sidePad   = Math.floor(W * 0.02); // small side margin
     const availableW = W - sidePad * 2;
     const availableH = H - HUD_H - topPad - bottomPad;
@@ -60,7 +60,7 @@ export function computeLayout(W, H) {
 
   // Portrait
   const sidePad   = Math.floor(W * 0.05);
-  const bottomPad = Math.floor(H * 0.05);
+  const bottomPad = Math.floor(H * 0.15); // 5% base + 10% extra
   const availableW = W - sidePad * 2;
   const availableH = H - HUD_H - bottomPad;
 
