@@ -139,9 +139,17 @@ export class BlockBlastScene extends Phaser.Scene {
       if (tp.container) tp.container.destroy();
       if (tp.placed) { tp.container = null; return; }
 
-      const { trayCellSize, traySlotW, trayY, trayH, W } = this.L;
-      const slotCenterX = traySlotW * i + traySlotW / 2;
-      const slotCenterY = trayY + trayH / 2;
+      const { trayCellSize, trayY, trayH, landscape } = this.L;
+      let slotCenterX, slotCenterY;
+      if (landscape) {
+        const { trayX, trayW, traySlotH } = this.L;
+        slotCenterX = trayX + trayW / 2;
+        slotCenterY = trayY + traySlotH * i + traySlotH / 2;
+      } else {
+        const { traySlotW } = this.L;
+        slotCenterX = traySlotW * i + traySlotW / 2;
+        slotCenterY = trayY + trayH / 2;
+      }
 
       const bounds = getPieceBounds(tp.piece.cells);
       const pieceW = bounds.cols * trayCellSize;
