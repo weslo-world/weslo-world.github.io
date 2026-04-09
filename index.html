@@ -7,9 +7,12 @@
   <style>
     * { margin: 0; padding: 0; }
     body { background: #1a1a2e; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    #splash { position: fixed; inset: 0; background: #1a1a2e; display: flex; justify-content: center; align-items: center; z-index: 9999; }
+    #splash img { width: 128px; height: 128px; }
   </style>
 </head>
 <body>
+  <div id="splash"><img src="logo.png"></div>
   <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
   <script type="module" src="src/main.js"></script>

@@ -11,6 +11,9 @@ export class MapScene extends Phaser.Scene {
   }
 
   create() {
+    const splash = document.getElementById('splash');
+    if (splash) splash.remove();
+
     const { locations } = this.cache.json.get('locations');
     const L = computeLayout(this.scale.width, this.scale.height);
 
