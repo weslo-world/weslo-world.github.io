@@ -9,8 +9,8 @@ const config = {
   scale: {
     mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: window.visualViewport ? window.visualViewport.width : window.innerWidth,
+    height: window.visualViewport ? window.visualViewport.height : window.innerHeight,
   },
   scene: [MapScene, BlockBlastScene, UIScene, QuizOverlayScene],
 };
