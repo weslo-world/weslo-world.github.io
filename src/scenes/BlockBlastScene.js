@@ -147,8 +147,8 @@ export class BlockBlastScene extends Phaser.Scene {
         slotCenterX = trayX + trayW / 2;
         slotCenterY = trayY + traySlotH * i + traySlotH / 2;
       } else {
-        const { traySlotW } = this.L;
-        slotCenterX = traySlotW * i + traySlotW / 2;
+        const { traySlotW, gridX } = this.L;
+        slotCenterX = gridX + traySlotW * i + traySlotW / 2;
         slotCenterY = trayY + trayH / 2;
       }
 
