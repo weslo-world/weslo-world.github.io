@@ -370,7 +370,7 @@ export class BlockBlastScene extends Phaser.Scene {
 
     const task = this.quizEngine.generateTask();
     this.scene.pause();
-    this.scene.launch('QuizOverlay', { task, linesCleared, isRescue });
+    this.scene.launch('QuizOverlay', { task, linesCleared, isRescue, timerSeconds: this.quizEngine.currentTimerSeconds });
 
     const quizScene = this.scene.get('QuizOverlay');
     quizScene.events.once('quizComplete', ({ correct, points }) => {

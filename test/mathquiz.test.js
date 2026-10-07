@@ -39,40 +39,4 @@ describe('MathQuizEngine', () => {
     expect(engine._pointsFor(3, 7)).toBe(8);
     expect(engine._pointsFor(9, 9)).toBe(8);
   });
-
-  it('re-inserts failed task 1–3 positions later', () => {
-    const engine = new MathQuizEngine();
-    const first = engine.generateTask();
-    engine.recordResult(first.a, first.b, false);
-
-    // The failed task should reappear within the next 3 tasks
-    const upcoming = [
-      engine.generateTask(),
-      engine.generateTask(),
-      engine.generateTask(),
-    ];
-    // a and b may be swapped (50% chance), so check both orderings
-    const reappeared = upcoming.some(t =>
-      (t.a === first.a && t.b === first.b) ||
-      (t.a === first.b && t.b === first.a)
-    );
-    expect(reappeared).toBe(true);
-  });
-
-  it('correct answer does not re-insert the task', () => {
-    const engine = new MathQuizEngine();
-    const first = engine.generateTask();
-    engine.recordResult(first.a, first.b, true);
-
-    // Peek at the next few — the task might coincidentally repeat (random),
-    // but the queue should not have grown (no forced re-insertion)
-    const queueBefore = engine._queue.length;
-    expect(queueBefore).toBeGreaterThanOrEqual(4); // still filled
-  });
-
-  it('recordResult does not throw', () => {
-    const engine = new MathQuizEngine();
-    expect(() => engine.recordResult(3, 4, true)).not.toThrow();
-    expect(() => engine.recordResult(3, 4, false)).not.toThrow();
-  });
 });

@@ -1,5 +1,3 @@
-const TIMER_SECONDS = 10;
-
 export class QuizOverlayScene extends Phaser.Scene {
   constructor() {
     super('QuizOverlay');
@@ -10,6 +8,7 @@ export class QuizOverlayScene extends Phaser.Scene {
     this.linesCleared = data.linesCleared || 1;
     this.isRescue = data.isRescue || false;
     this.totalPoints = this.task.points * this.linesCleared;
+    this._timerSeconds = data.timerSeconds; // supplied by the quiz engine
     this._typed = '';
     this._answerDigits = String(this.task.answer).length;
     this._answered = false;
@@ -82,7 +81,7 @@ export class QuizOverlayScene extends Phaser.Scene {
   update(time, delta) {
     if (this._answered) return;
     this._elapsed += delta;
-    const fraction = Math.max(0, 1 - this._elapsed / (TIMER_SECONDS * 1000));
+    const fraction = Math.max(0, 1 - this._elapsed / (this._timerSeconds * 1000));
     this.timerBarFill.width = this._timerBarW * fraction;
     if (fraction < 0.3) this.timerBarFill.setFillStyle(0xff4444);
     else if (fraction < 0.6) this.timerBarFill.setFillStyle(0xffaa00);
@@ -202,8 +201,8 @@ export class QuizOverlayScene extends Phaser.Scene {
         this._digitBoxes.forEach(b => b.bg.setFillStyle(0x1a4a2a).setStrokeStyle(2, 0x44ee66));
       });
 
-      // Dismiss after 10s or tap
-      this.time.delayedCall(10000, () => this._finish(false));
+      // Dismiss after the same time the child had to answer, or on tap
+      this.time.delayedCall(this._timerSeconds * 1000, () => this._finish(false));
       this.time.delayedCall(500, () => {
         this.input.once('pointerdown', () => this._finish(false));
       });

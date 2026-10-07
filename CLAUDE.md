@@ -18,7 +18,7 @@ Target audience: primary school children (~6–10 years old). Designed to be pla
 ## Commands
 
 ```sh
-./dev.sh                            # start Python HTTP server on port 8000
+./run.sh                            # start Python HTTP server on port 8000 (run.bat on Windows)
 npm test                            # run all tests
 npm test -- test/blockblast.test.js # run a single test file
 npm run test:watch                  # watch mode
@@ -31,8 +31,9 @@ No build step — serve `index.html` via any HTTP server (needed for ES module i
 - **`src/logic/`** — Pure functions and classes. No Phaser dependency. Tested with Vitest.
 - **`src/scenes/`** — Phaser scenes. Depend on logic modules for all game rules.
 - **`src/utils/layout.js`** — Dynamic layout computation. All scenes use `computeLayout(W, H)` instead of hardcoded positions.
-- **`data/locations.json`** — map hotspots and background image paths.
+- **`data/locations.json`** — map hotspots, background image paths, and quiz type per location.
 - **`assets/`** — Photo-based PNGs for map and scene backgrounds.
+- **`data/levels/*.json`** — level config files (grid size, tile types, moves, score goal). Currently defined but not wired to any scene.
 
 **Key design rule:** all game logic lives in `src/logic/` as pure, testable functions. Scenes only handle rendering and input.
 
@@ -43,7 +44,7 @@ No build step — serve `index.html` via any HTTP server (needed for ES module i
 - **MapScene** — loads `locations.json`, preloads all location background images, renders map with tappable hotspot zones.
 - **BlockBlastScene** — main game. 8×8 grid, 3-piece tray, drag-to-place. Detects line clears, stuck state, win condition. Launches QuizOverlayScene when needed. Emits `updateHUD` to UIScene.
 - **UIScene** — HUD overlay parallel to BlockBlastScene. Shows location name, score progress bar (X/100), back button.
-- **QuizOverlayScene** — modal quiz overlay. Pauses BlockBlastScene while active. Shows multiplication problem, phone-style numpad for typing the answer, 10-second timer bar. Emits `quizComplete` on finish.
+- **QuizOverlayScene** — modal quiz overlay. Pauses BlockBlastScene while active. Shows the task label, phone-style numpad for typing the answer, and a timer bar whose length comes from the engine's adaptive timer. Emits `quizComplete` on finish.
 
 ### Game Loop (BlockBlastScene)
 
@@ -53,7 +54,7 @@ No build step — serve `index.html` via any HTTP server (needed for ES module i
 4. If lines completed: flash cells → pause → launch QuizOverlayScene
 5. QuizOverlayScene result:
    - **Correct**: confetti animation, award `basePoints × linesCleared`, resume
-   - **Wrong**: shake + show correct answer (tap or 10s to dismiss) → 0 points, resume
+   - **Wrong**: shake + show correct answer (tap or timer-length wait to dismiss) → 0 points, resume
 6. When all 3 tray pieces placed: replenish with new set of 3
 7. If no piece in tray can fit anywhere on grid: show "No room!" → rescue quiz
    - Correct → blast clears 2 densest rows + 2 densest columns → continue, **no points awarded**
@@ -78,25 +79,31 @@ Factors are always 2–9. No ×1 or ×10 tasks (too trivial).
 
 - Shows the problem as `a × b =` with a 10-key numpad (1–9, 0, ⌫, AC)
 - Child types the answer digit by digit; auto-submits when enough digits entered
-- Answer display shows 1 or 2 digit boxes (answers range 4–81)
-- Timer bar depletes over 10 seconds; expiry counts as wrong
+- Answer display shows one box per answer digit (1–3 boxes; multiplication answers 4–81, addition answers 20–198)
+- Timer bar depletes over `engine.currentTimerSeconds` (passed in by BlockBlastScene); expiry counts as wrong
 - **Correct**: digit boxes turn green, confetti, "+N pts" message, auto-closes after 1.6s
-- **Wrong**: camera shake, boxes turn red → 0.5s later boxes show correct answer in green, tap or 10s to dismiss
+- **Wrong**: camera shake, boxes turn red → 0.5s later boxes show correct answer in green, tap to dismiss or auto-dismiss after the same number of seconds the timer allowed
 
-### MathQuizEngine (`src/logic/mathquiz.js`)
+### Quiz Engines
 
-Queue-based adaptive selection. Factors are always 2–9.
+All quiz engines extend `QuizEngineBase` (`src/logic/quizEngineBase.js`) and share one interface:
 
 ```js
-class MathQuizEngine {
-  generateTask()              // → { a, b, answer, points }
-  recordResult(a, b, correct) // wrong answer → re-inserts task 1–3 positions ahead in queue
-}
+engine.generateTask()              // → { a, b, label, answer, points }
+engine.recordResult(task, correct) // adjusts adaptive timer; wrong → re-inserts task 1–3 positions ahead
+engine.currentTimerSeconds         // seconds to allow for the next quiz
+engine.timerSeconds                // base seconds (getter, overridden per engine)
 ```
 
-- Pre-generates a queue of tasks; refills automatically when low.
-- On a wrong answer the failed task is re-inserted 1–3 positions later so the player sees it again soon without it feeling mechanical.
-- Each task has a 50% chance of showing as `a×b` or `b×a` to reinforce commutativity.
+`createQuizEngine(type)` in `src/logic/quizFactory.js` maps the `"quiz"` field from `locations.json` to the right engine class. Unknown types fall back to multiplication.
+
+**QuizEngineBase** provides: a pre-filled task queue that refills when low; wrong-answer re-insertion 1–3 positions later (50/30/20%); and an adaptive timer that starts at `timerSeconds`, grows 20% per wrong answer (capped at 2× base) and shrinks 5% per correct answer (floored at base). Subclasses implement only `_randomTask()`, `_makeTask(a, b)` and a `timerSeconds` getter (a getter, not a class field, because the base constructor reads it).
+
+**MathQuizEngine** (`src/logic/mathquiz.js`) — multiplication, factors 2–9, base timer 10s. 50% chance of swapping `a`/`b` to reinforce commutativity.
+
+**AdditionQuizEngine** (`src/logic/addition.js`) — addition, both operands 10–99 (answers 20–198), base timer 20s. Points by number of carries: 0 → 3pt, 1 → 5pt, 2 → 7pt.
+
+Shared behavior is tested once for every engine in `test/quizEngineBase.test.js`; per-engine tests cover only operand ranges and scoring.
 
 ### Pieces (`src/logic/pieces.js`)
 
@@ -149,10 +156,23 @@ Shown directly within BlockBlastScene as an overlay:
       "id": "station",
       "name": "Holmlia Stasjon",
       "image": "assets/scene1.png",
+      "quiz": "multiplication",
       "mapHotspot": { "x": 280, "y": 420, "width": 200, "height": 80 }
     }
   ]
 }
 ```
 
-The game is identical across all locations — only the background image changes.
+The `"quiz"` field selects the engine via `createQuizEngine()` — currently `"multiplication"` or `"addition"`. The game logic is otherwise identical across locations; only the background image and quiz type change.
+
+### Progress Persistence (`src/logic/progress.js`)
+
+Completions are stored in `localStorage` under key `weslo_progress` as a map of `locationId → ISO timestamp[]`. API:
+
+```js
+recordWin(locationId)       // appends a completion timestamp
+hasCompleted(locationId)    // → boolean
+lastCompleted(locationId)   // → ISO string | null
+```
+
+MapScene uses this to show visual completion state on hotspots.
